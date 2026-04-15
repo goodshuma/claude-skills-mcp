@@ -1,0 +1,40 @@
+{
+  "name": "claude-skills-mcp",
+  "version": "0.2.0",
+  "description": "MCP server that exposes Claude Code skills (~/.claude/skills/) to MCP clients like LM Studio",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "claude-skills-mcp": "dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goodshuma/claude-skills-mcp.git"
+  },
+  "homepage": "https://github.com/goodshuma/claude-skills-mcp",
+  "bugs": {
+    "url": "https://github.com/goodshuma/claude-skills-mcp/issues"
+  },
+  "keywords": ["mcp", "claude", "skills", "lm-studio"],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "bundle": "tsc && esbuild src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=release/claude-skills-mcp.cjs --external:fsevents",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "chokidar": "^4.0.1",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

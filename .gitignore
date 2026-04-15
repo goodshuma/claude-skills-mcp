@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.trash/
+*.log
+.DS_Store
+config.json
+config.local.json
+*.tsbuildinfo
+
+# Local tool configs
+.agent-skills/
+.agents/
+.claude/
+.codex/
+.gemini/
