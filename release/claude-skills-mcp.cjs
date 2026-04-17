@@ -28241,9 +28241,18 @@ var import_node_os = require("node:os");
 var import_node_path2 = require("node:path");
 var Scanner = class {
   roots;
+  pluginsMetadataPath;
   constructor(config2) {
+    this.pluginsMetadataPath = (0, import_node_path2.join)(
+      (0, import_node_os.homedir)(),
+      ".claude",
+      "plugins",
+      "installed_plugins.json"
+    );
     const personalRoot = (0, import_node_path2.join)((0, import_node_os.homedir)(), ".claude", "skills");
-    const roots = [{ path: personalRoot, location: "personal" }];
+    const roots = [
+      { path: personalRoot, location: "personal", enumerateDirectly: true }
+    ];
     for (const p of config2.additional_paths) {
       const absolute = (0, import_node_path2.resolve)(expandHome(p));
       if (!(0, import_node_fs2.existsSync)(absolute)) {
@@ -28258,7 +28267,14 @@ var Scanner = class {
           `additional_paths entry is not a directory: ${absolute}`
         );
       }
-      roots.push({ path: absolute, location: { additional: absolute } });
+      roots.push({
+        path: absolute,
+        location: { additional: absolute },
+        enumerateDirectly: true
+      });
+    }
+    for (const pluginRoot of this.enumeratePluginRoots()) {
+      roots.push(pluginRoot);
     }
     this.roots = roots;
   }
@@ -28269,6 +28285,7 @@ var Scanner = class {
     const entries = [];
     const seen = /* @__PURE__ */ new Set();
     for (const root of this.roots) {
+      if (!root.enumerateDirectly) continue;
       if (!isDir(root.path)) continue;
       for (const entry of this.scanRoot(root)) {
         if (seen.has(entry.name)) continue;
@@ -28291,14 +28308,48 @@ var Scanner = class {
       if (!isDir(skillDir)) continue;
       const skillMd = (0, import_node_path2.join)(skillDir, "SKILL.md");
       if (!isFile(skillMd)) continue;
+      const name = root.namePrefix ? `${root.namePrefix}${child}` : child;
       results.push({
-        name: child,
+        name,
         dir: skillDir,
         skillMdPath: skillMd,
         location: root.location
       });
     }
     return results;
+  }
+  enumeratePluginRoots() {
+    if (!isFile(this.pluginsMetadataPath)) return [];
+    let data;
+    try {
+      const raw = (0, import_node_fs2.readFileSync)(this.pluginsMetadataPath, "utf8");
+      data = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+    if (!data || typeof data !== "object") return [];
+    const obj = data;
+    const plugins = obj.plugins;
+    if (!plugins || typeof plugins !== "object") return [];
+    const roots = [];
+    for (const [pluginKey, installations] of Object.entries(
+      plugins
+    )) {
+      if (!Array.isArray(installations) || installations.length === 0) continue;
+      const pluginName = pluginKey.split("@")[0] || pluginKey;
+      const install = installations[0];
+      const installPath = install.installPath;
+      if (typeof installPath !== "string") continue;
+      const skillsDir = (0, import_node_path2.join)(installPath, "skills");
+      if (!isDir(skillsDir)) continue;
+      roots.push({
+        path: skillsDir,
+        location: { plugin: pluginName },
+        enumerateDirectly: true,
+        namePrefix: `${pluginName}:`
+      });
+    }
+    return roots;
   }
 };
 function expandHome(p) {
@@ -28323,6 +28374,7 @@ function isFile(p) {
 }
 function locationToString(loc) {
   if (loc === "personal") return "personal";
+  if ("plugin" in loc) return `plugin:${loc.plugin}`;
   return `additional:${loc.additional}`;
 }
 
