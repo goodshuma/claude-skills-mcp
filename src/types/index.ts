@@ -2,7 +2,10 @@ export interface ServerConfig {
   additional_paths: string[];
 }
 
-export type SkillLocation = "personal" | { additional: string };
+export type SkillLocation =
+  | "personal"
+  | { plugin: string }
+  | { additional: string };
 
 export interface SkillEntry {
   name: string;
